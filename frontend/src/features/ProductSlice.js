@@ -24,6 +24,7 @@ const productSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
+      // get product
       .addCase(getProduct.pending, (state) => {
         state.loading = true;
         state.error = null;
