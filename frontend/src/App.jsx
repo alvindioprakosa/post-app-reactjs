@@ -1,4 +1,4 @@
-import { Row } from "react-bootstrap";
+import { Container, Row, Col } from "react-bootstrap";
 import NavbarComponent from "./components/NavbarComponent.jsx";
 import Category from "./components/Category.jsx";
 import ProductDetail from "./components/ProductDetail.jsx";
@@ -8,13 +8,19 @@ function App() {
   return (
     <>
       <NavbarComponent />
-      <div className="container-fluid mt-3">
+      <Container fluid className="mt-3">
         <Row>
-          <Category />
-          <ProductDetail />
-          <Order />
+          <Col md={3}>
+            <Category />
+          </Col>
+          <Col md={6}>
+            <ProductDetail />
+          </Col>
+          <Col md={3}>
+            <Order />
+          </Col>
         </Row>
-      </div>
+      </Container>
     </>
   );
 }
