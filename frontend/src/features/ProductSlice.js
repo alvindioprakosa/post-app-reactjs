@@ -1,62 +1,77 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 
-export const getProduct = createAsyncThunk("product/getProduct", async () => {
-  const response = await axios.get("/products");
-  return response.data;
-});
-
-export const getProductByCategory = createAsyncThunk(
-  "product/getProductByCategory",
-  async (category) => {
-    const response = await axios.get(`/products?category_id=${category}`);
-    return response.data;
+// Ambil semua produk
+export const getProduct = createAsyncThunk(
+  "product/getProduct",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get("/products");
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
   }
 );
 
+// Ambil produk berdasarkan kategori
+export const getProductByCategory = createAsyncThunk(
+  "product/getProductByCategory",
+  async (categoryId, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`/products?category_id=${categoryId}`);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+const initialState = {
+  all: [], // semua produk
+  filtered: [], // produk hasil filter kategori
+  loading: false,
+  error: null,
+};
+
 const productSlice = createSlice({
   name: "product",
-  initialState: {
-    data: null,
-    loading: false,
-    error: null,
+  initialState,
+  reducers: {
+    resetFiltered: (state) => {
+      state.filtered = [];
+    },
   },
-  reducers: {},
   extraReducers: (builder) => {
     builder
-      // get product
+      // getProduct
       .addCase(getProduct.pending, (state) => {
         state.loading = true;
         state.error = null;
-        state.data = null;
       })
       .addCase(getProduct.fulfilled, (state, action) => {
-        state.data = action.payload;
+        state.all = action.payload;
         state.loading = false;
-        state.error = null;
       })
       .addCase(getProduct.rejected, (state, action) => {
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
         state.loading = false;
-        state.data = null;
       })
-      // get product by category
+      // getProductByCategory
       .addCase(getProductByCategory.pending, (state) => {
         state.loading = true;
         state.error = null;
-        state.data = null;
       })
       .addCase(getProductByCategory.fulfilled, (state, action) => {
-        state.data = action.payload;
+        state.filtered = action.payload;
         state.loading = false;
-        state.error = null;
       })
       .addCase(getProductByCategory.rejected, (state, action) => {
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
         state.loading = false;
-        state.data = null;
       });
   },
 });
 
+export const { resetFiltered } = productSlice.actions;
 export default productSlice.reducer;
