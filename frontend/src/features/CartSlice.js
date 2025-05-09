@@ -1,52 +1,61 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 
+// Get all cart data
 export const getCart = createAsyncThunk("cart/getCart", async () => {
   const response = await axios.get("/carts");
   return response.data;
 });
 
+// Add to cart
 export const inputCart = createAsyncThunk("cart/inputCart", async (data) => {
   await axios.post("/carts", data);
   const response = await axios.get("/carts");
   return response.data;
 });
 
+// Update cart item
 export const updateCart = createAsyncThunk("cart/updateCart", async (data) => {
   await axios.put(`/carts/${data.id}`, data);
   const response = await axios.get("/carts");
   return response.data;
 });
 
-export const delCart = createAsyncThunk("cart/delCart", async (data) => {
-  await axios.delete(`/carts/${data}`);
-  const cart = await axios.get("/carts");
-  return cart.data;
-});
-
-export const updCart = createAsyncThunk("cart/updCart", async (data) => {
-  data.totalPrice = data.qty * data.price;
-  await axios.put(`/carts/${data.id}`, data);
-  const cart = await axios.get("/carts");
-  return cart.data;
-});
-
-export const saveOrder = createAsyncThunk("cart/saveOrder", async (data) => {
-  await axios.post("/orders", data);
-  axios.get("/carts").then((cart) => {
-    const data = cart.data;
-    data.map(async (item) => {
-      try {
-        await axios.delete(`/carts/${item.id}`);
-      } catch (error) {
-        return null;
-      }
-    });
-  });
+// Delete cart item
+export const delCart = createAsyncThunk("cart/delCart", async (id) => {
+  await axios.delete(`/carts/${id}`);
   const response = await axios.get("/carts");
   return response.data;
 });
 
+// Update cart quantity and total price
+export const updCart = createAsyncThunk("cart/updCart", async (data) => {
+  data.totalPrice = data.qty * data.price;
+  await axios.put(`/carts/${data.id}`, data);
+  const response = await axios.get("/carts");
+  return response.data;
+});
+
+// Save order and clear cart
+export const saveOrder = createAsyncThunk("cart/saveOrder", async (data) => {
+  await axios.post("/orders", data);
+
+  const cart = await axios.get("/carts");
+  await Promise.all(
+    cart.data.map(async (item) => {
+      try {
+        await axios.delete(`/carts/${item.id}`);
+      } catch (error) {
+        console.error("Failed to delete item", item.id);
+      }
+    })
+  );
+
+  const response = await axios.get("/carts");
+  return response.data;
+});
+
+// Set data detail (for editing)
 export const setDetail = createAsyncThunk("cart/setDetail", async (data) => {
   return data;
 });
@@ -59,13 +68,17 @@ const cartSlice = createSlice({
     error: null,
     dataEdit: null,
   },
-  reducers: {},
+  reducers: {
+    resetCartError: (state) => {
+      state.error = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
+      // GET CART
       .addCase(getCart.pending, (state) => {
         state.loading = true;
         state.error = null;
-        state.data = null;
       })
       .addCase(getCart.fulfilled, (state, action) => {
         state.data = action.payload;
@@ -73,70 +86,74 @@ const cartSlice = createSlice({
         state.error = null;
       })
       .addCase(getCart.rejected, (state, action) => {
-        state.error = action.error.message;
         state.loading = false;
-        state.data = null;
+        state.error = action.error.message;
       })
-      // input cart
+
+      // INPUT CART
       .addCase(inputCart.pending, (state) => {
         state.loading = true;
         state.error = null;
-        state.data = null;
       })
       .addCase(inputCart.fulfilled, (state, action) => {
         state.data = action.payload;
         state.loading = false;
-        state.error = null;
       })
       .addCase(inputCart.rejected, (state, action) => {
-        state.error = action.error.message;
         state.loading = false;
-        state.data = null;
+        state.error = action.error.message;
       })
-      // update cart
+
+      // UPDATE CART
       .addCase(updateCart.pending, (state) => {
         state.loading = true;
         state.error = null;
-        state.data = null;
       })
       .addCase(updateCart.fulfilled, (state, action) => {
         state.data = action.payload;
         state.loading = false;
-        state.error = null;
       })
       .addCase(updateCart.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.error.message;
-        state.loading = false;
-        state.data = null;
       })
-      // save order
-      .addCase(saveOrder.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-        state.data = null;
-      })
-      .addCase(saveOrder.fulfilled, (state) => {
-        state.loading = false;
-        state.error = null;
-      })
-      .addCase(saveOrder.rejected, (state, action) => {
-        state.error = action.error.message;
-        state.loading = false;
-        state.data = null;
-      })
-      // set detail
-      .addCase(setDetail.fulfilled, (state, action) => {
-        state.dataEdit = action.payload;
-      })
-      // delete cart
+
+      // DELETE CART
       .addCase(delCart.fulfilled, (state, action) => {
         state.data = action.payload;
       })
-      // update cart
+      .addCase(delCart.rejected, (state, action) => {
+        state.error = action.error.message;
+      })
+
+      // UPD CART
       .addCase(updCart.fulfilled, (state, action) => {
         state.data = action.payload;
+      })
+      .addCase(updCart.rejected, (state, action) => {
+        state.error = action.error.message;
+      })
+
+      // SAVE ORDER
+      .addCase(saveOrder.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(saveOrder.fulfilled, (state, action) => {
+        state.data = action.payload;
+        state.loading = false;
+      })
+      .addCase(saveOrder.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+
+      // SET DETAIL
+      .addCase(setDetail.fulfilled, (state, action) => {
+        state.dataEdit = action.payload;
       });
   },
 });
 
+export const { resetCartError } = cartSlice.actions;
 export default cartSlice.reducer;
